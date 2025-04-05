@@ -1,0 +1,170 @@
+'use client';
+
+import { useState } from 'react';
+import { Users, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
+
+export default function AddUser() {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    role: 'staff', // Default role
+    password: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      // Simulate API call to add user
+      // Replace this with your actual API endpoint
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulated delay
+      console.log('New user data:', formData);
+      setSubmitStatus('success');
+      // Reset form
+      setFormData({
+        fullName: '',
+        email: '',
+        role: 'staff',
+        password: '',
+      });
+    } catch (error) {
+      console.error('Error adding user:', error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AuthenticatedLayout>
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-center items-center mb-6">
+            <h1 className="text-4xl font-extralight tracking-wider text-orionte-green ">
+              ADD NEW USER
+            </h1>
+            {/* <div className="text-sm font-light text-gray-500">
+              {new Date().toLocaleDateString()}
+            </div> */}
+          </div>
+
+          {/* Form Container */}
+          <div className="bg-white rounded-lg p-6 shadow-corporate max-w-2xl mx-auto">
+            <div className="flex items-center mb-6">
+              <Users className="h-8 w-8 text-orionte-green mr-2" />
+              <h2 className="text-xl font-light tracking-wider">User Details</h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-light text-gray-500 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:border-orionte-green"
+                  placeholder="Enter full name"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-light text-gray-500 mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:border-orionte-green"
+                  placeholder="Enter email address"
+                />
+              </div>
+
+              {/* Role */}
+              <div>
+                <label className="block text-sm font-light text-gray-500 mb-2">
+                  Role
+                </label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:border-orionte-green"
+                >
+                  <option value="staff">Staff</option>
+                  <option value="admin">Admin</option>
+                  <option value="student">Student</option>
+                </select>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-light text-gray-500 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:border-orionte-green"
+                  placeholder="Enter password"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`w-full p-3 rounded-lg text-white font-light tracking-wider ${
+                  isSubmitting
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-orionte-green hover:bg-orionte-green/90 transition-colors duration-300'
+                }`}
+              >
+                {isSubmitting ? 'Adding User...' : 'Add User'}
+              </button>
+
+              {/* Status Message */}
+              {submitStatus === 'success' && (
+                <div className="flex items-center p-4 bg-green-50 rounded-lg text-orionte-green">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  <p>User added successfully!</p>
+                </div>
+              )}
+              {submitStatus === 'error' && (
+                <div className="flex items-center p-4 bg-red-50 rounded-lg text-red-600">
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                  <p>Failed to add user. Please try again.</p>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      </div>
+    </AuthenticatedLayout>
+  );
+}
