@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  role      String   @db.VarChar(50) @default("client") // staff, client, admin
+  createdAt DateTime @default(now())
+  clients   Clients? @relation("UserToClient")
+  notifications Notifications[] @relation("UserNotifications")
+}
+
+model Leads {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(255)
+  email      String   @unique @db.VarChar(255)
+  status     String   @default("pending") @db.VarChar(50)
+  submittedAt DateTime @default(now())
+  clients    Clients? @relation("LeadToClient")
+}
+
+model Clients {
+  id             Int      @id @default(autoincrement())
+  leadId         Int      @unique
+  userId         Int      @unique
+  fullName       String   @db.VarChar(255)
+  passportNumber String   @unique @db.VarChar(50)
+  phone          String   @db.VarChar(20)
+  currentStageId Int?     @unique // Added @unique for one-to-one relation
+  createdAt      DateTime @default(now())
+  lead           Leads    @relation("LeadToClient", fields: [leadId], references: [id])
+  user           Users    @relation("UserToClient", fields: [userId], references: [id])
+  stages         Stages[] @relation("ClientStages")
+  documents      Documents[] @relation("ClientDocuments")
+  payments       Payments[] @relation("ClientPayments")
+  notifications  Notifications[] @relation("ClientNotifications")
+  currentStage   Stages?  @relation("CurrentStage", fields: [currentStageId], references: [id])
+}
+
+model Stages {
+  id           Int      @id @default(autoincrement())
+  clientId     Int
+  stageName    String   @db.VarChar(50)
+  completed    Boolean  @default(false)
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  client       Clients  @relation("ClientStages", fields: [clientId], references: [id])
+  currentClient Clients? @relation("CurrentStage")
+}
+
+model Documents {
+  id         Int      @id @default(autoincrement())
+  clientId   Int
+  type       String   @db.VarChar(50)
+  fileUrl    String   @db.VarChar(255)
+  verified   Boolean  @default(false)
+  uploadedAt DateTime @default(now())
+  verifiedAt DateTime?
+  client     Clients  @relation("ClientDocuments", fields: [clientId], references: [id])
+}
+
+model Payments {
+  id           Int      @id @default(autoincrement())
+  clientId     Int
+  type         String   @db.VarChar(50)
+  amount       Float
+  paidAmount   Float    @default(0.0)
+  status       String   @default("pending") @db.VarChar(50)
+  method       String   @db.VarChar(50)
+  transactionId String?  @db.VarChar(100)
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+  client       Clients  @relation("ClientPayments", fields: [clientId], references: [id])
+}
+
+model Notifications {
+  id        Int      @id @default(autoincrement())
+  clientId  Int?
+  userId    Int?
+  type      String   @db.VarChar(50)
+  message   String   @db.Text
+  sentAt    DateTime @default(now())
+  read      Boolean  @default(false)
+  client    Clients? @relation("ClientNotifications", fields: [clientId], references: [id])
+  user      Users?   @relation("UserNotifications", fields: [userId], references: [id])
+}

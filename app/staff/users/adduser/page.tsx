@@ -1,20 +1,40 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Users, CheckCircle, AlertCircle } from 'lucide-react';
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
 
+interface FormData {
+  fullName: string;
+  email: string;
+  role: 'staff' | 'client' | 'admin';
+  password: string;
+}
+
 export default function AddUser() {
-  const [formData, setFormData] = useState({
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
-    role: 'staff', // Default role
+    role: 'staff',
     password: '',
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null);
 
-  const handleChange = (e) => {
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
+
+  if (!session || session.user.role !== 'admin') {
+    router.push('/');
+    return null;
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -22,18 +42,27 @@ export default function AddUser() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus(null);
 
     try {
-      // Simulate API call to add user
-      // Replace this with your actual API endpoint
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulated delay
-      console.log('New user data:', formData);
+      const response = await fetch('/api/users/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data: { message?: string; error?: string } = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add user');
+      }
+
       setSubmitStatus('success');
-      // Reset form
       setFormData({
         fullName: '',
         email: '',
@@ -52,25 +81,17 @@ export default function AddUser() {
     <AuthenticatedLayout>
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="flex justify-center items-center mb-6">
-            <h1 className="text-4xl font-extralight tracking-wider text-orionte-green ">
+            <h1 className="text-4xl font-extralight tracking-wider text-orionte-green">
               ADD NEW USER
             </h1>
-            {/* <div className="text-sm font-light text-gray-500">
-              {new Date().toLocaleDateString()}
-            </div> */}
           </div>
-
-          {/* Form Container */}
           <div className="bg-white rounded-lg p-6 shadow-corporate max-w-2xl mx-auto">
             <div className="flex items-center mb-6">
               <Users className="h-8 w-8 text-orionte-green mr-2" />
               <h2 className="text-xl font-light tracking-wider">User Details</h2>
             </div>
-
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Full Name */}
               <div>
                 <label className="block text-sm font-light text-gray-500 mb-2">
                   Full Name
@@ -85,8 +106,6 @@ export default function AddUser() {
                   placeholder="Enter full name"
                 />
               </div>
-
-              {/* Email */}
               <div>
                 <label className="block text-sm font-light text-gray-500 mb-2">
                   Email Address
@@ -101,8 +120,6 @@ export default function AddUser() {
                   placeholder="Enter email address"
                 />
               </div>
-
-              {/* Role */}
               <div>
                 <label className="block text-sm font-light text-gray-500 mb-2">
                   Role
@@ -114,12 +131,10 @@ export default function AddUser() {
                   className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:border-orionte-green"
                 >
                   <option value="staff">Staff</option>
+                  <option value="client">Client</option>
                   <option value="admin">Admin</option>
-                  <option value="student">Student</option>
                 </select>
               </div>
-
-              {/* Password */}
               <div>
                 <label className="block text-sm font-light text-gray-500 mb-2">
                   Password
@@ -134,8 +149,6 @@ export default function AddUser() {
                   placeholder="Enter password"
                 />
               </div>
-
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -147,8 +160,6 @@ export default function AddUser() {
               >
                 {isSubmitting ? 'Adding User...' : 'Add User'}
               </button>
-
-              {/* Status Message */}
               {submitStatus === 'success' && (
                 <div className="flex items-center p-4 bg-green-50 rounded-lg text-orionte-green">
                   <CheckCircle className="h-5 w-5 mr-2" />

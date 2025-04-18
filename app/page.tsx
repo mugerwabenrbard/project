@@ -1,19 +1,42 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
+    setError(null);
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        console.error('[Login] Error:', result.error);
+        setError(result.error);
+        setIsLoading(false);
+      } else {
+        console.log('[Login] Success, redirecting to /staff/dashboard');
+        router.push('/staff/dashboard');
+      }
+    } catch (err) {
+      console.error('[Login] Unexpected error:', err);
+      setError('An unexpected error occurred');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -61,6 +84,13 @@ export default function LoginPage() {
                   />
                 </div>
 
+                {error && (
+                  <div className="flex items-center p-3 bg-red-50 dark:bg-red-900/30 rounded-xl text-red Linde-600 dark:text-red-400">
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    <p className="text-sm font-light">{error}</p>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between text-sm">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -94,7 +124,7 @@ export default function LoginPage() {
                 <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                   Don't have an account?{' '}
                   <a
-                    href="#"
+                    href="/staff/users/adduser"
                     className="text-primary hover:text-primary/80 transition-colors duration-300"
                   >
                     Sign up

@@ -63,7 +63,6 @@ export default function StaffDashboard() {
     <AuthenticatedLayout>
       <div className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
           <div className="flex justify-between items-center">
             <h1 className="text-4xl font-extralight tracking-wider text-orionte-green">
               STAFF DASHBOARD
@@ -73,7 +72,6 @@ export default function StaffDashboard() {
             </div>
           </div>
 
-          {/* Metrics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { label: 'Total Leads', value: metrics.totalLeads, icon: Users },
@@ -93,9 +91,7 @@ export default function StaffDashboard() {
             ))}
           </div>
 
-          {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Client Progress */}
             <div className="bg-white rounded-lg p-6 shadow-corporate">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-light tracking-wider">Client Progress</h2>
@@ -115,7 +111,6 @@ export default function StaffDashboard() {
               </div>
             </div>
 
-            {/* Pending Leads */}
             <div className="bg-white rounded-lg p-6 shadow-corporate">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-light tracking-wider">Pending Leads</h2>
@@ -138,7 +133,6 @@ export default function StaffDashboard() {
               </div>
             </div>
 
-            {/* Document Verifications */}
             <div className="bg-white rounded-lg p-6 shadow-corporate">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-light tracking-wider">Document Verifications</h2>
@@ -159,7 +153,6 @@ export default function StaffDashboard() {
               </div>
             </div>
 
-            {/* Payment Alerts */}
             <div className="bg-white rounded-lg p-6 shadow-corporate">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-light tracking-wider">Payment Alerts</h2>
@@ -188,7 +181,6 @@ export default function StaffDashboard() {
               </div>
             </div>
 
-            {/* Bixter Updates */}
             <div className="bg-white rounded-lg p-6 shadow-corporate lg:col-span-2">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-light tracking-wider">Bixter Updates</h2>
