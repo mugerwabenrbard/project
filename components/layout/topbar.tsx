@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bell, Search, User } from 'lucide-react';
+import UserRoleDisplay from '../UserRoleDisplay';
 
 export function Topbar() {
   return (
@@ -25,7 +26,7 @@ export function Topbar() {
           <div className="w-8 h-8 bg-orionte-green rounded-full flex items-center justify-center text-white">
             <User className="w-5 h-5" />
           </div>
-          <span className="font-light">Admin User</span>
+          <span className="font-light"><UserRoleDisplay /></span>
         </div>
       </div>
     </div>

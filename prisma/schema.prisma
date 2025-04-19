@@ -1,3 +1,9 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,86 +14,112 @@ datasource db {
 }
 
 model Users {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique @db.VarChar(255)
-  password  String   @db.VarChar(255)
-  role      String   @db.VarChar(50) @default("client") // staff, client, admin
-  createdAt DateTime @default(now())
-  clients   Clients? @relation("UserToClient")
+  id            Int             @id @default(autoincrement())
+  email         String          @unique @db.VarChar(255)
+  password      String          @db.VarChar(255)
+  role          String          @default("lead") @db.VarChar(50) // staff, client, admin
+  createdAt     DateTime        @default(now())
   notifications Notifications[] @relation("UserNotifications")
+  leads         Leads[]         @relation("RegisteredBy")
+  logs          Logs[]          @relation("StaffLogs")
 }
 
 model Leads {
-  id         Int      @id @default(autoincrement())
-  name       String   @db.VarChar(255)
-  email      String   @unique @db.VarChar(255)
-  status     String   @default("pending") @db.VarChar(50)
-  submittedAt DateTime @default(now())
-  clients    Clients? @relation("LeadToClient")
-}
-
-model Clients {
-  id             Int      @id @default(autoincrement())
-  leadId         Int      @unique
-  userId         Int      @unique
-  fullName       String   @db.VarChar(255)
-  passportNumber String   @unique @db.VarChar(50)
-  phone          String   @db.VarChar(20)
-  currentStageId Int?     @unique // Added @unique for one-to-one relation
-  createdAt      DateTime @default(now())
-  lead           Leads    @relation("LeadToClient", fields: [leadId], references: [id])
-  user           Users    @relation("UserToClient", fields: [userId], references: [id])
-  stages         Stages[] @relation("ClientStages")
-  documents      Documents[] @relation("ClientDocuments")
-  payments       Payments[] @relation("ClientPayments")
-  notifications  Notifications[] @relation("ClientNotifications")
-  currentStage   Stages?  @relation("CurrentStage", fields: [currentStageId], references: [id])
+  id                    Int        @id @default(autoincrement())
+  firstName             String     @db.VarChar(100)
+  middleName            String?    @db.VarChar(100)
+  lastName              String     @db.VarChar(100)
+  email                 String     @unique @db.VarChar(255)
+  phoneNumber           String     @db.VarChar(20)
+  nationality           String     @db.VarChar(100)
+  highestEducationLevel String     @db.VarChar(50)
+  programPlacement      Json
+  countryInterest       Json
+  university            String     @db.VarChar(255)
+  ieltsCertificate      Boolean    @default(false)
+  nextOfKin             String?    @db.VarChar(255)
+  kinAddress            String?    @db.Text
+  nin                   String?    @db.VarChar(50)
+  kinPhoneNumber        String?    @db.VarChar(20)
+  passportNumber        String?    @db.VarChar(50)
+  passportIssueDate     DateTime?
+  passportExpiryDate    DateTime?
+  dob                   DateTime?
+  address               String?    @db.Text
+  chosenProgram         String?    @db.VarChar(100)
+  registeredById        Int?
+  status                String     @default("pending") @db.VarChar(50)
+  submittedAt           DateTime   @default(now())
+  registeredBy          Users?     @relation("RegisteredBy", fields: [registeredById], references: [id])
+  // REMOVE THIS LINE: clients  Clients? @relation("LeadToClient")
+  payments              Payments[] @relation("LeadPayments")
+  stages                Stages[]
 }
 
 model Stages {
-  id           Int      @id @default(autoincrement())
-  clientId     Int
-  stageName    String   @db.VarChar(50)
-  completed    Boolean  @default(false)
-  startedAt    DateTime @default(now())
-  completedAt  DateTime?
-  client       Clients  @relation("ClientStages", fields: [clientId], references: [id])
-  currentClient Clients? @relation("CurrentStage")
+  id          Int       @id @default(autoincrement())
+  leadId      Int
+  stageName   String    @db.VarChar(50)
+  completed   Boolean   @default(false)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  lead        Leads     @relation(fields: [leadId], references: [id])
 }
 
 model Documents {
-  id         Int      @id @default(autoincrement())
-  clientId   Int
-  type       String   @db.VarChar(50)
-  fileUrl    String   @db.VarChar(255)
-  verified   Boolean  @default(false)
-  uploadedAt DateTime @default(now())
+  id         Int       @id @default(autoincrement())
+  // REMOVE: clientId   Int
+  type       String    @db.VarChar(50)
+  fileUrl    String    @db.VarChar(255)
+  verified   Boolean   @default(false)
+  uploadedAt DateTime  @default(now())
   verifiedAt DateTime?
-  client     Clients  @relation("ClientDocuments", fields: [clientId], references: [id])
+  // REMOVE: client     Clients  @relation("ClientDocuments", fields: [clientId], references: [id])
 }
 
 model Payments {
-  id           Int      @id @default(autoincrement())
-  clientId     Int
-  type         String   @db.VarChar(50)
-  amount       Float
-  paidAmount   Float    @default(0.0)
-  status       String   @default("pending") @db.VarChar(50)
-  method       String   @db.VarChar(50)
-  transactionId String?  @db.VarChar(100)
-  createdAt    DateTime @default(now())
-  completedAt  DateTime?
-  client       Clients  @relation("ClientPayments", fields: [clientId], references: [id])
+  id            Int       @id @default(autoincrement())
+  type          String    @db.VarChar(50)
+  amount        Float
+  paidAmount    Float     @default(0.0)
+  status        String    @default("pending") @db.VarChar(50)
+  method        String    @db.VarChar(50)
+  transactionId String?   @db.VarChar(100)
+  fileUrl       String?   @db.VarChar(255)
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+  lead          Leads     @relation("LeadPayments", fields: [leadId], references: [id])
+  leadId        Int
 }
 
 model Notifications {
+  id      Int      @id @default(autoincrement())
+  userId  Int?
+  type    String   @db.VarChar(50)
+  message String   @db.Text
+  sentAt  DateTime @default(now())
+  read    Boolean  @default(false)
+  user    Users?   @relation("UserNotifications", fields: [userId], references: [id])
+  // REMOVE: clientId  Int?
+  // REMOVE: client    Clients? @relation("ClientNotifications", fields: [clientId], references: [id])
+}
+
+model Logs {
   id        Int      @id @default(autoincrement())
-  clientId  Int?
-  userId    Int?
-  type      String   @db.VarChar(50)
-  message   String   @db.Text
-  sentAt    DateTime @default(now())
-  read      Boolean  @default(false)
-  client    Clients? @relation("ClientNotifications", fields: [clientId], references: [id])
-  user      Users?   @relation("UserNotifications", fields: [userId], references: [id])
+  userId    Int
+  action    String   @db.VarChar(100)
+  endpoint  String   @db.VarChar(255)
+  method    String   @db.VarChar(10)
+  status    Int
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+  user      Users    @relation("StaffLogs", fields: [userId], references: [id])
+}
+
+model Servicepx {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  price     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Users, CheckCircle, AlertCircle } from 'lucide-react';
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
+import { Loading } from '@/components/loading';
 
 interface FormData {
-  fullName: string;
   email: string;
-  role: 'staff' | 'client' | 'admin';
+  role: string;
   password: string;
 }
 
@@ -17,21 +17,28 @@ export default function AddUser() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
-    fullName: '',
     email: '',
     role: 'staff',
     password: '',
   });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  useEffect(() => {
+    console.log('[AddUser] Session status:', status, 'Session:', session);
+    if (status === 'unauthenticated') {
+      console.log('[AddUser] Redirecting to /');
+      router.push('/');
+    }
+  }, [status, session, router]);
 
   if (status === 'loading') {
-    return <div>Loading...</div>;
+    return <Loading />;
   }
 
   if (!session || session.user.role !== 'admin') {
-    router.push('/');
-    return null;
+    return null; // Redirect handled in useEffect
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -46,32 +53,45 @@ export default function AddUser() {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus(null);
+    setErrorMessage('');
 
     try {
+      console.log('[AddUser] Sending request to /api/users/add:', formData);
       const response = await fetch('/api/users/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
+        credentials: 'include',
       });
 
-      const data: { message?: string; error?: string } = await response.json();
+      console.log('[AddUser] Response status:', response.status);
+
+      const text = await response.text();
+      let data: { message?: string; error?: string };
+      try {
+        data = JSON.parse(text);
+      } catch (error) {
+        console.error('[AddUser] Response is not JSON:', text);
+        throw new Error('Invalid server response');
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to add user');
+        console.log('[AddUser] Error response:', data);
+        throw new Error(data.error || `Server responded with ${response.status}`);
       }
 
       setSubmitStatus('success');
       setFormData({
-        fullName: '',
         email: '',
         role: 'staff',
         password: '',
       });
-    } catch (error) {
-      console.error('Error adding user:', error);
+    } catch (error: any) {
+      console.error('[AddUser] Client error:', error.message);
       setSubmitStatus('error');
+      setErrorMessage(error.message || 'Failed to add user');
     } finally {
       setIsSubmitting(false);
     }
@@ -92,20 +112,6 @@ export default function AddUser() {
               <h2 className="text-xl font-light tracking-wider">User Details</h2>
             </div>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-light text-gray-500 mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  required
-                  className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:border-orionte-green"
-                  placeholder="Enter full name"
-                />
-              </div>
               <div>
                 <label className="block text-sm font-light text-gray-500 mb-2">
                   Email Address
@@ -169,7 +175,7 @@ export default function AddUser() {
               {submitStatus === 'error' && (
                 <div className="flex items-center p-4 bg-red-50 rounded-lg text-red-600">
                   <AlertCircle className="h-5 w-5 mr-2" />
-                  <p>Failed to add user. Please try again.</p>
+                  <p>{errorMessage || 'Failed to add user. Please try again.'}</p>
                 </div>
               )}
             </form>

@@ -25,11 +25,9 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        console.error('[Login] Error:', result.error);
         setError(result.error);
         setIsLoading(false);
       } else {
-        console.log('[Login] Success, redirecting to /staff/dashboard');
         router.push('/staff/dashboard');
       }
     } catch (err) {
@@ -122,7 +120,7 @@ export default function LoginPage() {
 
               <div className="text-center">
                 <p className="text-sm font-light text-gray-500 dark:text-gray-400">
-                  Don't have an account?{' '}
+                  Don&apos;t have an account?{' '}
                   <a
                     href="/staff/users/adduser"
                     className="text-primary hover:text-primary/80 transition-colors duration-300"

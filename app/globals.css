@@ -43,3 +43,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Sonner toast styles */
+.sonner-toast-success,
+.toast-success {
+  border: 1px solid #004225 !important; /* orionte-green */
+  background: #004225 !important; /* light green */
+}
+
+.sonner-toast-error,
+.toast-error {
+  border: 1px solid #dc2626 !important; /* red-600 */
+  background: #dc2626 !important; /* red-50 */
+}

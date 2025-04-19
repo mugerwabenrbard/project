@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users as UsersIcon, ChevronDown } from 'lucide-react';
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
 import RegistrationForm from '@/components/clientsteps/RegistrationStep';
@@ -15,112 +15,135 @@ import WorkPermitStep from '@/components/clientsteps/WorkPermitStep';
 import AirTicketStep from '@/components/clientsteps/AirtcketStep';
 import TrainTicketStep from '@/components/clientsteps/TrainTicketStep';
 import AirportStep from '@/components/clientsteps/AirportStep';
+import { Loading } from '@/components/loading';
+
+interface Client {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nationality: string;
+  stages: any[];
+}
 
 export default function ClientProgressTrackerPage({ params }) {
   const [openStep, setOpenStep] = useState(null);
+  const [client, setClient] = useState<Client | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy client data
-  const client = {
-    id: params.id,
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    nationality: 'USA',
-  };
+  async function fetchClient() {
+    try {
+      const response = await fetch(`/api/tracker/${params.id}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch client');
+      const data = await response.json();
+      setClient(data);
+    } catch (error) {
+      setClient(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  // Tracking steps with RegistrationForm in the first step
+  useEffect(() => {
+    fetchClient();
+  }, [params.id]);
+
+  const isStageCompleted = (stepName: string) =>
+    client?.stages?.some(
+      (stage: any) =>
+        stage.stageName.toLowerCase() === stepName.toLowerCase() && stage.completed
+    );
+
+  const registrationStage = client?.stages?.find(
+    (stage: any) => stage.stageName.toLowerCase() === 'registration'
+  );
+
   const trackingSteps = [
     {
       id: 1,
       name: 'Registration',
       description: 'Client registration and initial onboarding',
-      status: 'Pending',
-      content: <RegistrationForm />, // Use the imported component
+      content: <RegistrationForm leadId={client?.id} registrationStageId={registrationStage?.id} onSuccess={fetchClient} />,
     },
     {
       id: 2,
       name: 'Academic Documents',
       description: 'Completion of academic examination',
-      status: 'Pending',
       content: <DocumentAssistanceStep />,
     },
     {
       id: 3,
       name: 'Medical Check',
       description: 'Completion of medical examination',
-      status: 'Pending',
       content: <MedicalStep />,
     },
     {
       id: 4,
       name: 'Video CV',
       description: 'Submission of video CV',
-      status: 'Pending',
       content: <VideoCVStep />,
     },
     {
       id: 5,
       name: 'IELTS Test',
       description: 'Completion of English IELTS test',
-      status: 'Pending',
       content: <IELTSStep />,
     },
     {
       id: 6,
       name: 'Partner Submission',
       description: 'Submission of documents to Bixter',
-      status: 'Pending',
       content: <SubmitToPartnerStep />,
     },
     {
       id: 7,
       name: 'Contract Processing',
       description: 'Processing of employment contract',
-      status: 'Pending',
       content: <ContractStep />,
     },
     {
       id: 8,
       name: 'Visa Processing',
       description: 'Processing of visa application',
-      status: 'Pending',
       content: <VisaStep />,
     },
     {
       id: 9,
       name: 'Work Permit Processing',
       description: 'Processing of work permit application',
-      status: 'Pending',
       content: <WorkPermitStep />,
     },
     {
       id: 10,
       name: 'Air Ticket',
       description: 'Booking of air ticket',
-      status: 'Pending',
       content: <AirTicketStep />,
     },
     {
       id: 11,
       name: 'Train Ticket',
       description: 'Booking of train ticket',
-      status: 'Pending',
       content: <TrainTicketStep />,
     },
     {
       id: 12,
       name: 'Airport Transfer',
       description: 'Arrangement of airport transfer',
-      status: 'Pending',
       content: <AirportStep />,
     },
   ];
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (!client) {
+    return <div>No client found</div>;
+  }
 
   return (
     <AuthenticatedLayout>
       <div className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
           <div className="bg-white rounded-xl p-6 shadow-corporate border border-gray-100">
             <div className="text-center">
               <h1 className="text-4xl font-extralight tracking-widest text-orionte-green uppercase">
@@ -144,9 +167,7 @@ export default function ClientProgressTrackerPage({ params }) {
               </div>
             </div>
           </div>
-
-          {/* Progress Tracker Accordion */}
-          <div className="bg-white rounded-xl shadow-corporate border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-corporate border border-gray-200 overflow-hidden">
             <div className="border-b border-gray-200 py-4 px-6 bg-gray-50">
               <h2 className="text-xl font-light tracking-wider text-gray-800">
                 Client Progress
@@ -154,13 +175,13 @@ export default function ClientProgressTrackerPage({ params }) {
             </div>
             <div className="divide-y divide-gray-200">
               {trackingSteps.map((step) => {
-                const isCompleted = step.status === 'Completed';
+                const isCompleted = isStageCompleted(step.name);
                 const isOpen = openStep === step.id;
 
                 return (
                   <div key={step.id} className="transition-all duration-300 ease-in-out">
                     <button
-                      onClick={() => setOpenStep(isOpen ? null : step.id)}
+                      onClick={() => setOpenStep(isOpen ? null : step.id as number)}
                       className={`flex items-center w-full text-left py-4 px-6 focus:outline-none transition-all duration-200 ${
                         isCompleted
                           ? 'bg-orionte-green/5 hover:bg-orionte-green/10'
@@ -172,7 +193,7 @@ export default function ClientProgressTrackerPage({ params }) {
                           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
                             isCompleted
                               ? 'bg-orionte-green text-white shadow-md'
-                              : 'bg-red-100 text-red-600 border-2 border-red-300'
+                              : 'bg-red-200 text-red-700'
                           }`}
                         >
                           {isCompleted ? (
@@ -212,7 +233,6 @@ export default function ClientProgressTrackerPage({ params }) {
                         />
                       </div>
                     </button>
-
                     {isOpen && (
                       <div className="bg-gray-50 px-6 py-6 border-t border-gray-200 transition-all duration-300 ease-in-out">
                         <div className="ml-16">{step.content}</div>

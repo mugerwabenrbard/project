@@ -1,19 +1,10 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react';
-import { 
-  Settings, 
-  DollarSign, 
-  Mail, 
-  FileText, 
-  Shield, 
-  Users, 
-  CreditCard, 
-  Globe 
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, DollarSign, Mail, FileText, CreditCard, Globe, Users } from 'lucide-react';
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout';
+import { toast } from 'sonner';
 
-// Types for different settings sections
 type ServicePrice = {
   id: number;
   name: string;
@@ -51,61 +42,81 @@ type UserRole = {
 };
 
 const SettingsDashboard: React.FC = () => {
-  // Initial state for different settings
   const [activeSection, setActiveSection] = useState<string>('services');
-  
-  const [services, setServices] = useState<ServicePrice[]>([
-    { id: 1, name: 'IELTS', price: 1400000 },
-    { id: 2, name: 'After Contract (Visa)', price: 4000000 },
-    { id: 3, name: 'Work Permit Processing', price: 7100000 },
-    { id: 4, name: 'Airport Transfer', price: 160000 },
-    { id: 5, name: 'Medical Check', price: 150000 },
-    { id: 6, name: 'Video CV', price: 200000 },
-  ]);
-
+  const [services, setServices] = useState<ServicePrice[]>([]);
   const [currencies, setCurrencies] = useState<CurrencySetting[]>([
     { code: 'UGX', exchangeRate: 1 },
     { code: 'USD', exchangeRate: 3800 },
   ]);
-
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([
-    { 
-      id: 1, 
-      name: 'Contract Submission', 
-      subject: 'Contract Submission Notification', 
-      body: 'Dear Partner, Please find attached the contract for review.' 
+    {
+      id: 1,
+      name: 'Contract Submission',
+      subject: 'Contract Submission Notification',
+      body: 'Dear Partner, Please find attached the contract for review.',
     },
   ]);
-
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([
     { id: 1, name: 'CV', required: true },
     { id: 2, name: 'Passport', required: true },
     { id: 3, name: 'Educational Certificates', required: false },
   ]);
-
   const [paymentStatuses, setPaymentStatuses] = useState<PaymentStatus[]>([
     { id: 1, name: 'Pending', color: 'yellow' },
     { id: 2, name: 'Paid', color: 'green' },
     { id: 3, name: 'Partial', color: 'orange' },
     { id: 4, name: 'Overdue', color: 'red' },
   ]);
-
   const [userRoles, setUserRoles] = useState<UserRole[]>([
-    { 
-      id: 1, 
-      name: 'Admin', 
-      permissions: ['Edit Settings', 'Update Progress', 'Manage Users'] 
-    },
-    { 
-      id: 2, 
-      name: 'Staff', 
-      permissions: ['Update Progress'] 
-    },
+    { id: 1, name: 'Admin', permissions: ['Edit Settings', 'Update Progress', 'Manage Users'] },
+    { id: 2, name: 'Staff', permissions: ['Update Progress'] },
   ]);
 
-  // Render different sections based on active section
+  useEffect(() => {
+    if (activeSection === 'services') {
+      fetchServices();
+    }
+  }, [activeSection]);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('/api/service-prices', { credentials: 'include' });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch service prices');
+      }
+      const data = await response.json();
+      setServices(data);
+    } catch (error) {
+      toast.error(`Failed to fetch service prices: ${error.message}`);
+    }
+  };
+
+  const handleServiceUpdate = async (updatedService: ServicePrice) => {
+    try {
+      const updatedServices = services.map((s) =>
+        s.id === updatedService.id ? updatedService : s
+      );
+      setServices(updatedServices);
+
+      const response = await fetch('/api/service-prices', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ services: updatedServices }),
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update service prices');
+      }
+      toast.success('Service price updated successfully');
+    } catch (error) {
+      toast.error(`Failed to update service price: ${error.message}`);
+    }
+  };
+
   const renderActiveSection = () => {
-    switch(activeSection) {
+    switch (activeSection) {
       case 'services':
         return (
           <div className="space-y-4">
@@ -124,17 +135,22 @@ const SettingsDashboard: React.FC = () => {
                   <tr key={service.id} className="border-b hover:bg-gray-50 transition-all">
                     <td className="p-3">{service.name}</td>
                     <td className="p-3">
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         value={service.price}
-                        onChange={(e) => {
-                          const newServices = services.map(s => 
-                            s.id === service.id 
-                              ? {...s, price: Number(e.target.value)} 
-                              : s
-                          );
-                          setServices(newServices);
-                        }}
+                        onChange={(e) =>
+                          setServices((prev) =>
+                            prev.map((s) =>
+                              s.id === service.id ? { ...s, price: Number(e.target.value) } : s
+                            )
+                          )
+                        }
+                        onBlur={() =>
+                          handleServiceUpdate({
+                            ...service,
+                            price: Number(services.find((s) => s.id === service.id)?.price || service.price),
+                          })
+                        }
                         className="
                           w-full 
                           p-2 
@@ -172,8 +188,8 @@ const SettingsDashboard: React.FC = () => {
                   <tr key={currency.code} className="border-b hover:bg-gray-50 transition-all">
                     <td className="p-3">{currency.code}</td>
                     <td className="p-3">
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         value={currency.exchangeRate}
                         onChange={(e) => {
                           const newCurrencies = [...currencies];
@@ -199,49 +215,23 @@ const SettingsDashboard: React.FC = () => {
             </table>
           </div>
         );
-      // Add similar rendering for other sections
       default:
         return null;
     }
   };
 
-  // Sidebar navigation
   const SideNavigation = () => {
     const navItems = [
-      { 
-        icon: DollarSign, 
-        label: 'Service Prices', 
-        section: 'services' 
-      },
-      { 
-        icon: Globe, 
-        label: 'Currency Settings', 
-        section: 'currencies' 
-      },
-      { 
-        icon: Mail, 
-        label: 'Email Templates', 
-        section: 'emails' 
-      },
-      { 
-        icon: FileText, 
-        label: 'Document Types', 
-        section: 'documents' 
-      },
-      { 
-        icon: CreditCard, 
-        label: 'Payment Statuses', 
-        section: 'payments' 
-      },
-      { 
-        icon: Users, 
-        label: 'User Roles', 
-        section: 'roles' 
-      },
+      { icon: DollarSign, label: 'Service Prices', section: 'services' },
+      { icon: Globe, label: 'Currency Settings', section: 'currencies' },
+      { icon: Mail, label: 'Email Templates', section: 'emails' },
+      { icon: FileText, label: 'Document Types', section: 'documents' },
+      { icon: CreditCard, label: 'Payment Statuses', section: 'payments' },
+      { icon: Users, label: 'User Roles', section: 'roles' },
     ];
 
     return (
-      <div 
+      <div
         className="
           w-64 
           bg-gradient-to-br 
@@ -268,15 +258,11 @@ const SettingsDashboard: React.FC = () => {
               transition-all 
               duration-300 
               ease-in-out 
-              ${activeSection === item.section 
-                ? 'bg-[#004225] text-white' 
-                : 'hover:bg-gray-200 text-gray-700'}
+              ${activeSection === item.section ? 'bg-[#004225] text-white' : 'hover:bg-gray-200 text-gray-700'}
             `}
           >
             <item.icon className="mr-3" size={20} />
-            <span className="font-light tracking-wider uppercase text-sm">
-              {item.label}
-            </span>
+            <span className="font-light tracking-wider uppercase text-sm">{item.label}</span>
           </button>
         ))}
       </div>
@@ -285,7 +271,7 @@ const SettingsDashboard: React.FC = () => {
 
   return (
     <AuthenticatedLayout>
-      <div 
+      <div
         className="
           min-h-screen 
           bg-gradient-to-br 
@@ -297,11 +283,8 @@ const SettingsDashboard: React.FC = () => {
           flex
         "
       >
-        {/* Sidebar Navigation */}
         <SideNavigation />
-
-        {/* Main Content Area */}
-        <div 
+        <div
           className="
             flex-grow 
             ml-6 
@@ -315,14 +298,8 @@ const SettingsDashboard: React.FC = () => {
           "
         >
           <div className="flex items-center mb-8">
-            <Settings 
-              className="
-                text-[#004225] 
-                mr-4
-              " 
-              size={36} 
-            />
-            <h1 
+            <Settings className="text-[#004225] mr-4" size={36} />
+            <h1
               className="
                 text-4xl 
                 font-extralight 
@@ -337,8 +314,6 @@ const SettingsDashboard: React.FC = () => {
               SETTINGS DASHBOARD
             </h1>
           </div>
-
-          {/* Dynamic Content Rendering */}
           {renderActiveSection()}
         </div>
       </div>
