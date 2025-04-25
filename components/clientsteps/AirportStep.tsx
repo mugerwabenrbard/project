@@ -56,7 +56,7 @@ export default function AirportTransferStep() {
             <label className="block text-xs font-light text-gray-500 mb-1">Payment Status</label>
             <select
               value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value)}
+              onChange={(e)  => setPaymentStatus(e.target.value)}
               className="w-full p-2 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orionte-green"
             >
               <option value="pending">Pending</option>
