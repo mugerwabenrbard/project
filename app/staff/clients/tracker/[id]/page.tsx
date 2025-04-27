@@ -62,13 +62,25 @@ export default function ClientProgressTrackerPage({ params }) {
       id: 1,
       name: 'Registration',
       description: 'Client registration and initial onboarding',
-      content: <RegistrationForm leadId={client?.id} registrationStageId={registrationStage?.id} onSuccess={fetchClient} />,
+      content: <RegistrationForm 
+        leadId={client?.id} 
+        registrationStageId={registrationStage?.id} 
+        onSuccess={fetchClient}
+        completed={registrationStage?.completed}
+        initialData={registrationStage?.data || {}}
+      />,
     },
     {
       id: 2,
       name: 'Academic Documents',
       description: 'Completion of academic examination',
-      content: <DocumentAssistanceStep />,
+      content: <DocumentAssistanceStep 
+        leadId={client?.id}
+        stageId={client?.stages?.find(stage => stage.stageName.toLowerCase() === 'academic documents')?.id}
+        onSuccess={fetchClient}
+        initialData={client?.stages?.find(stage => stage.stageName.toLowerCase() === 'academic documents')?.data || {}}
+        completed={client?.stages?.find(stage => stage.stageName.toLowerCase() === 'academic documents')?.completed}
+      />,
     },
     {
       id: 3,

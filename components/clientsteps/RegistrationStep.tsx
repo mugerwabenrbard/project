@@ -5,10 +5,22 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-export default function RegistrationForm({ leadId, registrationStageId, onSuccess }) {
+// Define props interface to type the component parameters
+interface RegistrationFormProps {
+  leadId: string;
+  registrationStageId: string;
+  onSuccess: () => void;
+}
+
+import EditInfoModal from './EditInfoModal';
+import RegistrationDataTable from './RegistrationDataTable';
+
+export default function RegistrationForm({ leadId, registrationStageId, onSuccess }: RegistrationFormProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  // All hooks must be called before any early return
+  const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
     nextOfKin: '',
     kinAddress: '',
@@ -21,9 +33,43 @@ export default function RegistrationForm({ leadId, registrationStageId, onSucces
     address: '',
     chosenProgram: '',
   });
+  const [dataTableRefreshKey, setDataTableRefreshKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  // Determine user role
+  const userRole = session?.user?.role;
+
+  // Handler to open modal
+  const handleOpenEditModal = async () => {
+    try {
+      const res = await fetch(`/api/tracker/${leadId}`);
+      if (!res.ok) throw new Error('Failed to fetch lead');
+      const data = await res.json();
+      setForm({
+        nextOfKin: data.nextOfKin || '',
+        kinAddress: data.kinAddress || '',
+        kinPhoneNumber: data.kinPhoneNumber || '',
+        passportNumber: data.passportNumber || '',
+        passportIssueDate: data.passportIssueDate || '',
+        passportExpiryDate: data.passportExpiryDate || '',
+        nin: data.nin || '',
+        dob: data.dob || '',
+        address: data.address || '',
+        chosenProgram: data.chosenProgram || '',
+      });
+    } catch (err) {
+      // Optionally show error
+    }
+    setEditModalOpen(true);
+  };
+  // Handler to close modal
+  const handleCloseEditModal = () => setEditModalOpen(false);
+
+  // Only show table if there is data
+  const hasData = Object.values(form).some((v) => v);
 
   // Redirect to login if unauthenticated
   useEffect(() => {
@@ -84,6 +130,8 @@ export default function RegistrationForm({ leadId, registrationStageId, onSucces
       }
       setSuccess('Registration info saved!');
       toast.success('Registration info saved!');
+      setEditModalOpen(false); // Close modal on success
+      setDataTableRefreshKey((k) => k + 1); // trigger table refresh
       if (onSuccess) onSuccess();
     } catch (err) {
       setError(err.message);
@@ -93,11 +141,29 @@ export default function RegistrationForm({ leadId, registrationStageId, onSucces
     }
   };
 
+
+  // (Removed duplicate declarations here)
+
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
-      {error && <p className="text-red-500">{error}</p>}
-      {success && <p className="text-green-600">{success}</p>}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <>
+      {/* Edit Info Button */}
+      <button
+        type="button"
+        className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700"
+        onClick={handleOpenEditModal}
+      >
+        Edit Info
+      </button>
+
+      {/* Always show table above main step form */}
+      <RegistrationDataTable leadId={leadId} refreshKey={dataTableRefreshKey} />
+
+      {/* Edit Info Modal */}
+      <EditInfoModal isOpen={editModalOpen} onClose={handleCloseEditModal}>
+        <form className="space-y-6" onSubmit={handleSubmit}>
+  {error && <p className="text-red-500">{error}</p>}
+  {success && <p className="text-green-600">{success}</p>}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-light text-gray-500 mb-1">Next of Kin Name</label>
@@ -225,13 +291,25 @@ export default function RegistrationForm({ leadId, registrationStageId, onSucces
           </div>
         </div>
       </div>
+      {/* Hide update button for client and staff roles */}
+      {userRole !== 'client' && userRole !== 'staff' && (
+        <button
+          type="submit"
+          className="mt-4 px-6 py-2 bg-orionte-green text-white rounded-lg shadow hover:bg-green-700"
+          disabled={loading}
+        >
+          {loading ? 'Saving...' : 'Update Info'}
+        </button>
+      )}
       <button
-        type="submit"
-        className="mt-4 px-6 py-2 bg-orionte-green text-white rounded-lg shadow hover:bg-green-700"
-        disabled={loading}
+        type="button"
+        className="ml-4 mt-4 px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+        onClick={handleCloseEditModal}
       >
-        {loading ? 'Saving...' : 'Save Registration'}
+        Cancel
       </button>
     </form>
+      </EditInfoModal>
+    </>
   );
 }

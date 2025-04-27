@@ -1,16 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const session = await getServerSession(req, res, authOptions);
+  if (!session) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const sessionUserId = typeof session.user.id === 'string'
+    ? parseInt(session.user.id, 10)
+    : session.user.id;
+
   const { id } = req.query;
 
   if (req.method === 'PUT') {
-    const userId = req.body.userId;
-    if (!userId || isNaN(parseInt(userId))) {
-      return res.status(400).json({ message: 'Valid userId is required' });
-    }
+    const userId = sessionUserId;
 
     try {
       const leadId = Array.isArray(id) ? parseInt(id[0], 10) : parseInt(id as string, 10);
@@ -42,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           endpoint: `/api/leads/${leadId}`,
           method: 'PUT',
           status: 200,
-          userId: parseInt(userId),
+          userId,
           details: JSON.stringify({ leadId, data }),
         },
       });
@@ -55,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           endpoint: `/api/leads/${id}`,
           method: 'PUT',
           status: 500,
-          userId: parseInt(userId),
+          userId,
           details: JSON.stringify({ error: String(error), leadId: id, data: req.body }),
         },
       });

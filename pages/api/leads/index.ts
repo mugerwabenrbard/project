@@ -107,23 +107,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(201).json(lead);
     }
 
-    if (req.method === 'GET') {
-      const leads = await prisma.leads.findMany({
-        include: { registeredBy: { select: { email: true } } },
-      });
-      await prisma.logs.create({
-        data: {
-          action: 'Fetched Leads',
-          endpoint: '/api/leads',
-          method: 'GET',
-          status: 200,
-          userId,
-          details: JSON.stringify({ leadCount: leads.length }),
-        },
-      });
-      return res.status(200).json(leads);
-    }
-
     if (req.method === 'PUT') {
       const {
         id,

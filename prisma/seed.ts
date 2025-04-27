@@ -11,6 +11,7 @@ async function main() {
     { name: 'Airport Transfer', price: 160000 },
     { name: 'Medical Check', price: 150000 },
     { name: 'Video CV', price: 200000 },
+    { name: 'Get Me Academic Docs', price: 1000000 },
     { name: 'Registration', price: 50000 },
   ];
 

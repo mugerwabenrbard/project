@@ -6,59 +6,40 @@ const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    console.log('[ServicePricesAPI] Request received:', { method: req.method, url: req.url });
+
 
     // Validate authentication
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    console.log('[ServicePricesAPI] Token:', token ? { role: token.role, sub: token.sub } : 'No token');
+
     
     if (!token || !['admin', 'staff'].includes(token.role as string)) {
-      console.log('[ServicePricesAPI] Unauthorized: Invalid or missing token');
+
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const userId = parseInt(token.sub as string);
     if (isNaN(userId)) {
-      console.error('[ServicePricesAPI] Invalid userId:', token.sub);
+  
       return res.status(400).json({ error: 'Invalid user ID' });
     }
 
     if (req.method === 'GET') {
-      console.log('[ServicePricesAPI] Fetching service prices...');
-      const services = await prisma.servicepx.findMany();
-      console.log('[ServicePricesAPI] Services fetched:', services);
 
-      try {
-        await prisma.logs.create({
-          data: {
-            action: 'Fetched Service Prices',
-            endpoint: '/api/service-prices',
-            method: 'GET',
-            status: 200,
-            userId,
-            details: JSON.stringify({ serviceCount: services.length }),
-          },
-        });
-        console.log('[ServicePricesAPI] Log created successfully');
-      } catch (logError) {
-        console.error('[ServicePricesAPI] Failed to create log:', logError);
-        // Continue despite logging error
-      }
+      const services = await prisma.servicepx.findMany();
+
 
       return res.status(200).json(services);
     }
 
     if (req.method === 'PUT') {
-      console.log('[ServicePricesAPI] Updating service prices:', req.body);
+
       const { services } = req.body;
       if (!Array.isArray(services)) {
-        console.error('[ServicePricesAPI] Invalid request body: Services must be an array');
         return res.status(400).json({ error: 'Services must be an array' });
       }
 
       for (const service of services) {
         if (!service.id || !service.name || typeof service.price !== 'number') {
-          console.error('[ServicePricesAPI] Invalid service data:', service);
           return res.status(400).json({ error: 'Invalid service data' });
         }
 
@@ -124,9 +105,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } finally {
     try {
       await prisma.$disconnect();
-      console.log('[ServicePricesAPI] Prisma disconnected');
     } catch (disconnectError) {
-      console.error('[ServicePricesAPI] Prisma disconnect failed:', disconnectError);
+      console.error('[ServicePricesAPI] Failed to disconnect from Prisma:', disconnectError);
     }
   }
 }

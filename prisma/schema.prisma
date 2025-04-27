@@ -54,6 +54,7 @@ model Leads {
   // REMOVE THIS LINE: clients  Clients? @relation("LeadToClient")
   payments              Payments[] @relation("LeadPayments")
   stages                Stages[]
+  documents             Document[] // Add this line for the relation
 }
 
 model Stages {
@@ -66,16 +67,17 @@ model Stages {
   lead        Leads     @relation(fields: [leadId], references: [id])
 }
 
-model Documents {
-  id         Int       @id @default(autoincrement())
-  // REMOVE: clientId   Int
-  type       String    @db.VarChar(50)
-  fileUrl    String    @db.VarChar(255)
-  verified   Boolean   @default(false)
-  uploadedAt DateTime  @default(now())
+model Document {
+  id        Int      @id @default(autoincrement())
+  leadId    Int      // Foreign key to Lead
+  lead      Leads    @relation(fields: [leadId], references: [id])
+  type      String
+  fileUrl   String
+  verified  Boolean  @default(false)
+  uploadedAt DateTime @default(now())
   verifiedAt DateTime?
-  // REMOVE: client     Clients  @relation("ClientDocuments", fields: [clientId], references: [id])
 }
+
 
 model Payments {
   id            Int       @id @default(autoincrement())

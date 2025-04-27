@@ -1,23 +1,31 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const session = await getServerSession(req, res, authOptions);
+  if (!session) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const sessionUserId = typeof session.user.id === 'string'
+    ? parseInt(session.user.id, 10)
+    : session.user.id;
+
   const { id } = req.query;
 
   if (req.method === 'PATCH') {
-    const userId = req.body.userId;
-    if (!userId || isNaN(parseInt(userId))) {
-      return res.status(400).json({ message: 'Valid userId is required' });
-    }
+    const userId = sessionUserId;
 
     try {
       const stageId = Array.isArray(id) ? parseInt(id[0], 10) : parseInt(id as string, 10);
       if (isNaN(stageId)) {
         return res.status(400).json({ message: 'Invalid stage ID' });
       }
-      const data = req.body;
+      const data = { ...req.body };
+      delete data.userId;
       // Transform potential date fields to ISO-8601 format
       ['passportIssueDate', 'passportExpiryDate', 'dob'].forEach((field) => {
         if (data[field]) {
@@ -26,16 +34,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       const updatedStage = await prisma.stages.update({
         where: { id: stageId },
-        data,
+        data: {
+          completed: true,
+          completedAt: new Date(),
+        },
       });
 
       await prisma.logs.create({
         data: {
-          action: 'Updated Stage',
+          action: `Updated Stage ${updatedStage.stageName}`,
           endpoint: `/api/stages/${stageId}`,
           method: 'PATCH',
           status: 200,
-          userId: parseInt(userId),
+          userId,
           details: JSON.stringify({ stageId, data }),
         },
       });
@@ -48,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           endpoint: `/api/stages/${id}`,
           method: 'PATCH',
           status: 500,
-          userId: parseInt(userId),
+          userId,
           details: JSON.stringify({ error: String(error), stageId: id, data: req.body }),
         },
       });
