@@ -78,7 +78,6 @@ model Document {
   verifiedAt DateTime?
 }
 
-
 model Payments {
   id            Int       @id @default(autoincrement())
   type          String    @db.VarChar(50)

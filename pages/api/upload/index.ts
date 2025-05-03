@@ -12,7 +12,13 @@ export const config = {
 
 const prisma = new PrismaClient();
 
+import { getToken } from 'next-auth/jwt';
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const token = await getToken({ req });
+  if (!token || !['admin', 'staff'].includes(token.role as string)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

@@ -22,24 +22,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (existing) {
           return res.status(409).json({ error: 'Transaction ID already exists' });
         }
-        await prisma.logs.create({
-          data: {
-            action: 'Checked Transaction ID',
-            endpoint: '/api/payments/check-transaction-id',
-            method: 'GET',
-            status: 200,
-            userId,
-            details: JSON.stringify({ transactionId }),
-          },
-        });
         return res.status(200).json({ message: 'Transaction ID is unique' });
       }
 
     if (req.method === 'POST') {
       const { leadId, transactionId, fileUrl, method } = req.body;
 
-      if (!leadId || !transactionId || !fileUrl || !method) {
-        return res.status(400).json({ error: 'Lead ID, transaction ID, proof of payment, and payment method are required' });
+      if (!leadId || !transactionId || !method) {
+        return res.status(400).json({ error: 'Lead ID, transaction ID, and payment method are required' });
+      }
+      // Only require fileUrl for mobile_money/visa
+      if ((method === 'mobile_money' || method === 'visa') && (!fileUrl || fileUrl === 'N/A')) {
+        return res.status(400).json({ error: 'Proof of payment is required for Mobile Money or Visa payments' });
       }
 
       if (!/^\d{14}$/.test(transactionId)) {
@@ -94,9 +88,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           data: {
             leadId: parseInt(leadId),
             type: 'Registration',
-            amount: registrationPrice.price,
-            paidAmount: registrationPrice.price,
-            status: 'paid',
+            amount: Number(amount), // total price of the service
+            paidAmount: Number(paidAmount), // amount paid in this transaction
+            status: status || 'partial',
             method,
             transactionId,
             fileUrl,
@@ -110,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             amount: medicalPrice.price,
             paidAmount: medicalPrice.price,
             status: 'paid',
-            method: 'mobile_money',
+            method,
             transactionId,
             fileUrl,
             completedAt: new Date(),
@@ -156,6 +150,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(201).json({ message: 'Payments processed successfully', payments: paymentsAndStages.slice(0, 2) });
     }
 
+    // Authenticate all requests
+    const { getToken } = await import('next-auth/jwt');
+    const token = await getToken({ req });
+    if (!token || !['admin', 'staff'].includes(token.role as string)) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     if (req.method !== 'GET') {
       const userId = req.body?.userId || null;
       await prisma.logs.create({
